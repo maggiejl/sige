@@ -2,6 +2,21 @@
 \begin{table}[t]
 \centering
 \small
+\caption{Baseline latency of one CFG U-Net call on each GPU (512 px, 10\% edit, fp32). MACs are hardware independent; the speedup shows how much of the MACs reduction each GPU realizes.}
+\label{tab:machines}
+\begin{tabular}{lrrrrrr}
+\toprule
+GPU & Dense (ms) & SIGE conv (ms) & SIGE conv+attn (ms) & Speedup conv & Speedup conv+attn & MACs red. conv+attn \\
+\midrule
+a100 & 179.2 $\pm$ 0.3 & 175.5 $\pm$ 0.0 & 106.0 $\pm$ 0.0 & 1.02$\times$ $\pm$ 0.00 & 1.69$\times$ $\pm$ 0.00 & 2.12$\times$ \\
+rtx5070tilaptop & 368.6 $\pm$ 1.9 & 341.9 $\pm$ 6.9 & 237.3 $\pm$ 27.8 & 1.08$\times$ $\pm$ 0.02 & 1.58$\times$ $\pm$ 0.20 & 2.12$\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\small
 \caption{SIGE vs. dense SDXL at the base point (a100): 512 px, 10\% edit, 50 DDIM steps, strength 0.8, guidance 5.0, mean $\pm$ std over 3 prompts. PSNR / LPIPS compare the full SDEdit output with dense SDXL given the same input, prompt, noise and seed.}
 \label{tab:baseline_a100}
 \begin{tabular}{lrrrrrr}
@@ -68,6 +83,79 @@ Conv & Attn & Method & GMACs & MACs red. & Speedup & PSNR (dB) $\uparrow$ & LPIP
 \midrule
 8 & 4 & SIGE (conv) & 1387 & 1.15$\times$ & 1.02$\times$ $\pm$ 0.00 & 28.23 $\pm$ 3.14 & 0.054 $\pm$ 0.022 \\
  &  & SIGE (conv+attn) & 783 & 2.03$\times$ & 1.69$\times$ $\pm$ 0.00 & 27.69 $\pm$ 2.75 & 0.057 $\pm$ 0.027 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\small
+\caption{SIGE vs. dense SDXL at the base point (rtx5070tilaptop): 512 px, 10\% edit, 50 DDIM steps, strength 0.8, guidance 5.0, mean $\pm$ std over 3 prompts. PSNR / LPIPS compare the full SDEdit output with dense SDXL given the same input, prompt, noise and seed.}
+\label{tab:baseline_rtx5070tilaptop}
+\begin{tabular}{lrrrrrr}
+\toprule
+Method & GMACs & MACs red. & Latency (ms) & Speedup & PSNR (dB) $\uparrow$ & LPIPS $\downarrow$ \\
+\midrule
+Dense SDXL & 1589 & 1.00$\times$ & 368.6 $\pm$ 1.9 & 1.00$\times$ & -- & -- \\
+SIGE (conv) & 1352 & 1.18$\times$ & 341.9 $\pm$ 6.9 & 1.08$\times$ $\pm$ 0.02 & 28.48 $\pm$ 3.83 & 0.053 $\pm$ 0.025 \\
+SIGE (conv+attn) & 748 & 2.12$\times$ & 237.3 $\pm$ 27.8 & 1.58$\times$ $\pm$ 0.20 & 28.00 $\pm$ 2.88 & 0.057 $\pm$ 0.026 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\small
+\caption{Effect of edit size (rtx5070tilaptop, 512 px). Edit = measured fraction of changed pixels; MACs reduction and speedup are relative to dense SDXL; quality is vs. dense SDXL, mean $\pm$ std over 3 prompts.}
+\label{tab:edit_size_rtx5070tilaptop}
+\begin{tabular}{rlrrrrr}
+\toprule
+Edit & Method & GMACs & MACs red. & Speedup & PSNR (dB) $\uparrow$ & LPIPS $\downarrow$ \\
+\midrule
+1.3\% & SIGE (conv) & 1255 & 1.27$\times$ & 1.10$\times$ $\pm$ 0.02 & 46.58 $\pm$ 6.30 & 0.003 $\pm$ 0.002 \\
+ & SIGE (conv+attn) & 378 & 4.20$\times$ & 1.81$\times$ $\pm$ 0.03 & 46.50 $\pm$ 6.38 & 0.003 $\pm$ 0.002 \\
+\midrule
+5.9\% & SIGE (conv) & 1303 & 1.22$\times$ & 1.09$\times$ $\pm$ 0.03 & 33.99 $\pm$ 1.66 & 0.011 $\pm$ 0.003 \\
+ & SIGE (conv+attn) & 502 & 3.16$\times$ & 1.62$\times$ $\pm$ 0.27 & 30.01 $\pm$ 2.78 & 0.023 $\pm$ 0.009 \\
+\midrule
+11.4\% & SIGE (conv) & 1352 & 1.18$\times$ & 1.05$\times$ $\pm$ 0.02 & 28.48 $\pm$ 3.83 & 0.053 $\pm$ 0.025 \\
+ & SIGE (conv+attn) & 748 & 2.12$\times$ & 1.69$\times$ $\pm$ 0.20 & 28.00 $\pm$ 2.88 & 0.057 $\pm$ 0.026 \\
+\midrule
+22.3\% & SIGE (conv) & 1422 & 1.12$\times$ & 1.03$\times$ $\pm$ 0.04 & 28.10 $\pm$ 4.46 & 0.062 $\pm$ 0.036 \\
+ & SIGE (conv+attn) & 1021 & 1.55$\times$ & 1.35$\times$ $\pm$ 0.06 & 27.68 $\pm$ 4.19 & 0.073 $\pm$ 0.046 \\
+\midrule
+43.7\% & SIGE (conv) & 1566 & 1.01$\times$ & 0.99$\times$ $\pm$ 0.00 & 25.24 $\pm$ 2.58 & 0.119 $\pm$ 0.011 \\
+ & SIGE (conv+attn) & 1386 & 1.15$\times$ & 1.06$\times$ $\pm$ 0.03 & 24.67 $\pm$ 2.09 & 0.116 $\pm$ 0.009 \\
+\midrule
+60.1\% & SIGE (conv) & 1610 & 0.99$\times$ & 0.99$\times$ $\pm$ 0.03 & 22.48 $\pm$ 0.91 & 0.170 $\pm$ 0.001 \\
+ & SIGE (conv+attn) & 1579 & 1.01$\times$ & 1.01$\times$ $\pm$ 0.01 & 22.36 $\pm$ 1.54 & 0.171 $\pm$ 0.026 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\small
+\caption{Effect of the SIGE block size (rtx5070tilaptop, 512 px, 10\% edit). Conv = block size of the 3$\times$3 convolutions (resnet and upsample), Attn = token block size of the transformers; 1$\times$1 shortcuts (4) and stride-2 downsamplers (5) are fixed. The attention block size does not affect SIGE (conv), whose transformers are dense. Defaults are 6 / 4.}
+\label{tab:block_size_rtx5070tilaptop}
+\begin{tabular}{rrlrrrrr}
+\toprule
+Conv & Attn & Method & GMACs & MACs red. & Speedup & PSNR (dB) $\uparrow$ & LPIPS $\downarrow$ \\
+\midrule
+4 & 4 & SIGE (conv) & 1312 & 1.21$\times$ & 1.02$\times$ $\pm$ 0.03 & 27.90 $\pm$ 3.19 & 0.055 $\pm$ 0.023 \\
+ &  & SIGE (conv+attn) & 708 & 2.24$\times$ & 1.50$\times$ $\pm$ 0.07 & 27.32 $\pm$ 2.97 & 0.066 $\pm$ 0.024 \\
+\midrule
+6 & 2 & SIGE (conv) & 1352 & 1.18$\times$ & 1.03$\times$ $\pm$ 0.01 & 28.48 $\pm$ 3.83 & 0.053 $\pm$ 0.025 \\
+ &  & SIGE (conv+attn) & 556 & 2.86$\times$ & 1.47$\times$ $\pm$ 0.02 & 25.57 $\pm$ 1.69 & 0.066 $\pm$ 0.028 \\
+\midrule
+6 & 4 & SIGE (conv) & 1352 & 1.18$\times$ & 1.08$\times$ $\pm$ 0.02 & 28.48 $\pm$ 3.83 & 0.053 $\pm$ 0.025 \\
+ &  & SIGE (conv+attn) & 748 & 2.12$\times$ & 1.58$\times$ $\pm$ 0.20 & 28.00 $\pm$ 2.88 & 0.057 $\pm$ 0.026 \\
+\midrule
+6 & 8 & SIGE (conv) & 1352 & 1.18$\times$ & 1.04$\times$ $\pm$ 0.02 & 28.48 $\pm$ 3.83 & 0.053 $\pm$ 0.025 \\
+ &  & SIGE (conv+attn) & 1258 & 1.26$\times$ & 1.11$\times$ $\pm$ 0.06 & 28.06 $\pm$ 3.04 & 0.054 $\pm$ 0.021 \\
+\midrule
+8 & 4 & SIGE (conv) & 1387 & 1.15$\times$ & 1.04$\times$ $\pm$ 0.01 & 28.30 $\pm$ 3.85 & 0.054 $\pm$ 0.024 \\
+ &  & SIGE (conv+attn) & 783 & 2.03$\times$ & 1.43$\times$ $\pm$ 0.03 & 27.69 $\pm$ 3.01 & 0.060 $\pm$ 0.026 \\
 \bottomrule
 \end{tabular}
 \end{table}

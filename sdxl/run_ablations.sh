@@ -68,10 +68,18 @@ if [ -z "${PYTHON:-}" ]; then
   else PYTHON=python; fi
 fi
 
-# `sige` may be built in place rather than pip-installed, so put the repo root on the path.
-if command -v cygpath >/dev/null 2>&1; then export PYTHONPATH="$(cygpath -w "$REPO")"
-else export PYTHONPATH="$REPO${PYTHONPATH:+:$PYTHONPATH}"; fi
-export PYTHONUNBUFFERED=1
+# `sige` may be built in place rather than pip-installed, so the repo root must be on sys.path.
+# This is done by a bootstrap instead of PYTHONPATH: WSL bash (what `bash` starts from PowerShell) does
+# not reliably pass environment variables to a Windows python.exe, and that python needs a Windows path
+# (cygpath in Git Bash, wslpath in WSL).
+REPO_PY=$REPO
+if command -v cygpath >/dev/null 2>&1; then REPO_PY=$(cygpath -w "$REPO")
+elif [[ "$PYTHON" == *.exe ]] && command -v wslpath >/dev/null 2>&1; then REPO_PY=$(wslpath -w "$REPO"); fi
+PY_BOOT="import sys, runpy; sys.path.insert(0, r'''$REPO_PY'''); a = sys.argv[1:]; sys.argv = a
+if a[0] == '-c': exec(a[1])
+else: runpy.run_path(a[0], run_name='__main__')"
+# py script.py args...   or   py -c "code"
+py() { "$PYTHON" -u -c "$PY_BOOT" "$@"; }
 
 GPU_NAME=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -n 1)
 GPU_MEM_MB=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | head -n 1 | tr -dc '0-9')
@@ -110,7 +118,7 @@ echo "sdxl dir : $SDXL_DIR"
 echo "python   : $PYTHON"
 echo "gpu      : $GPU_NAME (${GPU_MEM_MB} MiB) -> ${MEM_FLAGS[*]}"
 echo "output   : $SDXL_DIR/$OUT"
-"$PYTHON" -c "import torch, sige.nn; print('torch', torch.__version__, '| cuda', torch.cuda.is_available())"
+py -c "import torch, sige.nn; print('torch', torch.__version__, '| cuda', torch.cuda.is_available())"
 
 # run_cell <output dir> <benchmark.py args...>: one benchmark.py call per prompt, then the average.
 # Expects the edit ratios of the cell in the RATIOS array.
@@ -124,10 +132,10 @@ run_cell() {
       continue
     fi
     echo "--- $dir/prompt$i: ${PROMPTS[$i]}"
-    "$PYTHON" benchmark.py --prompt "${PROMPTS[$i]}" --edit_ratios "${RATIOS[@]}" --repeats "$REPEATS" \
+    py benchmark.py --prompt "${PROMPTS[$i]}" --edit_ratios "${RATIOS[@]}" --repeats "$REPEATS" \
       "${COMMON[@]}" "${MEM_FLAGS[@]}" --output_dir "$dir/prompt$i" "$@"
   done
-  "$PYTHON" aggregate.py "$dir"/prompt*/results.csv --out "$dir/summary.csv"
+  py aggregate.py "$dir"/prompt*/results.csv --out "$dir/summary.csv"
 }
 
 run_baseline() {
@@ -178,5 +186,5 @@ done
 # Paper tables (Markdown + LaTeX) over every machine whose results are in the same output root,
 # so copying other machines' outputs/ablations/<machine> folders here and rerunning this gives the
 # cross-GPU comparison too:  python make_tables.py outputs/ablations
-"$PYTHON" make_tables.py "$(dirname "$OUT")"
+py make_tables.py "$(dirname "$OUT")"
 echo "JOB_DONE: summaries in $SDXL_DIR/$OUT, tables in $SDXL_DIR/$(dirname "$OUT")/tables.{md,tex}"

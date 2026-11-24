@@ -1,5 +1,14 @@
 # SIGE-SDXL ablation tables
 
+### Hardware comparison
+
+Baseline latency of one CFG U-Net call on each GPU (512 px, 10% edit, fp32). MACs are hardware independent; the speedup shows how much of the MACs reduction each GPU realizes.
+
+| GPU | Dense (ms) | SIGE conv (ms) | SIGE conv+attn (ms) | Speedup conv | Speedup conv+attn | MACs red. conv+attn |
+|---|---:|---:|---:|---:|---:|---:|
+| a100 | 179.2 ± 0.3 | 175.5 ± 0.0 | 106.0 ± 0.0 | 1.02× ± 0.00 | 1.69× ± 0.00 | 2.12× |
+| rtx5070tilaptop | 368.6 ± 1.9 | 341.9 ± 6.9 | 237.3 ± 27.8 | 1.08× ± 0.02 | 1.58× ± 0.20 | 2.12× |
+
 ### Baseline (a100)
 
 SIGE vs. dense SDXL at the base point (a100): 512 px, 10% edit, 50 DDIM steps, strength 0.8, guidance 5.0, mean ± std over 3 prompts. PSNR / LPIPS compare the full SDEdit output with dense SDXL given the same input, prompt, noise and seed.
@@ -45,3 +54,49 @@ Effect of the SIGE block size (a100, 512 px, 10% edit). Conv = block size of the
 |  |  | SIGE (conv+attn) | 1258 | 1.26× | 1.07× ± 0.00 | 27.90 ± 2.09 | 0.054 ± 0.019 |
 | 8 | **4** | SIGE (conv) | 1387 | 1.15× | 1.02× ± 0.00 | 28.23 ± 3.14 | 0.054 ± 0.022 |
 |  |  | SIGE (conv+attn) | 783 | 2.03× | 1.69× ± 0.00 | 27.69 ± 2.75 | 0.057 ± 0.027 |
+
+### Baseline (rtx5070tilaptop)
+
+SIGE vs. dense SDXL at the base point (rtx5070tilaptop): 512 px, 10% edit, 50 DDIM steps, strength 0.8, guidance 5.0, mean ± std over 3 prompts. PSNR / LPIPS compare the full SDEdit output with dense SDXL given the same input, prompt, noise and seed.
+
+| Method | GMACs | MACs red. | Latency (ms) | Speedup | PSNR (dB) ↑ | LPIPS ↓ |
+|---|---:|---:|---:|---:|---:|---:|
+| Dense SDXL | 1589 | 1.00× | 368.6 ± 1.9 | 1.00× | -- | -- |
+| SIGE (conv) | 1352 | 1.18× | 341.9 ± 6.9 | 1.08× ± 0.02 | 28.48 ± 3.83 | 0.053 ± 0.025 |
+| SIGE (conv+attn) | 748 | 2.12× | 237.3 ± 27.8 | 1.58× ± 0.20 | 28.00 ± 2.88 | 0.057 ± 0.026 |
+
+### Edit size (rtx5070tilaptop)
+
+Effect of edit size (rtx5070tilaptop, 512 px). Edit = measured fraction of changed pixels; MACs reduction and speedup are relative to dense SDXL; quality is vs. dense SDXL, mean ± std over 3 prompts.
+
+| Edit | Method | GMACs | MACs red. | Speedup | PSNR (dB) ↑ | LPIPS ↓ |
+|---:|---|---:|---:|---:|---:|---:|
+| 1.3% | SIGE (conv) | 1255 | 1.27× | 1.10× ± 0.02 | 46.58 ± 6.30 | 0.003 ± 0.002 |
+|  | SIGE (conv+attn) | 378 | 4.20× | 1.81× ± 0.03 | 46.50 ± 6.38 | 0.003 ± 0.002 |
+| 5.9% | SIGE (conv) | 1303 | 1.22× | 1.09× ± 0.03 | 33.99 ± 1.66 | 0.011 ± 0.003 |
+|  | SIGE (conv+attn) | 502 | 3.16× | 1.62× ± 0.27 | 30.01 ± 2.78 | 0.023 ± 0.009 |
+| 11.4% | SIGE (conv) | 1352 | 1.18× | 1.05× ± 0.02 | 28.48 ± 3.83 | 0.053 ± 0.025 |
+|  | SIGE (conv+attn) | 748 | 2.12× | 1.69× ± 0.20 | 28.00 ± 2.88 | 0.057 ± 0.026 |
+| 22.3% | SIGE (conv) | 1422 | 1.12× | 1.03× ± 0.04 | 28.10 ± 4.46 | 0.062 ± 0.036 |
+|  | SIGE (conv+attn) | 1021 | 1.55× | 1.35× ± 0.06 | 27.68 ± 4.19 | 0.073 ± 0.046 |
+| 43.7% | SIGE (conv) | 1566 | 1.01× | 0.99× ± 0.00 | 25.24 ± 2.58 | 0.119 ± 0.011 |
+|  | SIGE (conv+attn) | 1386 | 1.15× | 1.06× ± 0.03 | 24.67 ± 2.09 | 0.116 ± 0.009 |
+| 60.1% | SIGE (conv) | 1610 | 0.99× | 0.99× ± 0.03 | 22.48 ± 0.91 | 0.170 ± 0.001 |
+|  | SIGE (conv+attn) | 1579 | 1.01× | 1.01× ± 0.01 | 22.36 ± 1.54 | 0.171 ± 0.026 |
+
+### Block size (rtx5070tilaptop)
+
+Effect of the SIGE block size (rtx5070tilaptop, 512 px, 10% edit). Conv = block size of the 3×3 convolutions (resnet and upsample), Attn = token block size of the transformers; 1×1 shortcuts (4) and stride-2 downsamplers (5) are fixed. The attention block size does not affect SIGE (conv), whose transformers are dense. Defaults are 6 / 4.
+
+| Conv | Attn | Method | GMACs | MACs red. | Speedup | PSNR (dB) ↑ | LPIPS ↓ |
+|---:|---:|---|---:|---:|---:|---:|---:|
+| 4 | **4** | SIGE (conv) | 1312 | 1.21× | 1.02× ± 0.03 | 27.90 ± 3.19 | 0.055 ± 0.023 |
+|  |  | SIGE (conv+attn) | 708 | 2.24× | 1.50× ± 0.07 | 27.32 ± 2.97 | 0.066 ± 0.024 |
+| **6** | 2 | SIGE (conv) | 1352 | 1.18× | 1.03× ± 0.01 | 28.48 ± 3.83 | 0.053 ± 0.025 |
+|  |  | SIGE (conv+attn) | 556 | 2.86× | 1.47× ± 0.02 | 25.57 ± 1.69 | 0.066 ± 0.028 |
+| **6** | **4** | SIGE (conv) | 1352 | 1.18× | 1.08× ± 0.02 | 28.48 ± 3.83 | 0.053 ± 0.025 |
+|  |  | SIGE (conv+attn) | 748 | 2.12× | 1.58× ± 0.20 | 28.00 ± 2.88 | 0.057 ± 0.026 |
+| **6** | 8 | SIGE (conv) | 1352 | 1.18× | 1.04× ± 0.02 | 28.48 ± 3.83 | 0.053 ± 0.025 |
+|  |  | SIGE (conv+attn) | 1258 | 1.26× | 1.11× ± 0.06 | 28.06 ± 3.04 | 0.054 ± 0.021 |
+| 8 | **4** | SIGE (conv) | 1387 | 1.15× | 1.04× ± 0.01 | 28.30 ± 3.85 | 0.054 ± 0.024 |
+|  |  | SIGE (conv+attn) | 783 | 2.03× | 1.43× ± 0.03 | 27.69 ± 3.01 | 0.060 ± 0.026 |
