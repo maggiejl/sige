@@ -83,7 +83,10 @@ class SIGESDXLEditor:
 
     # ------------------------------------------------------------------ helpers
     @torch.no_grad()
-    def encode_prompt(self, prompt: str, negative_prompt: str = ""):
+    def encode_prompt(self, prompt: str, negative_prompt: Optional[str] = None):
+        # An empty negative prompt means stock SDXL behaviour: diffusers only zeroes the negative
+        # embeddings (force_zeros_for_empty_prompt) when negative_prompt is None, not when it is "".
+        negative_prompt = negative_prompt or None
         key = (prompt, negative_prompt)
         if key not in self._prompt_cache:
             pe, npe, pooled, npooled = self.pipe.encode_prompt(

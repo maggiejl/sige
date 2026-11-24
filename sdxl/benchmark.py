@@ -56,6 +56,11 @@ def main():
     with open(csv_path, "w", newline="") as f:
         csv.DictWriter(f, fieldnames=fields).writeheader()
 
+    # The SDEdit noise must differ from the noise the original image was generated from: generate() and
+    # edit() draw identically shaped noise from a seeded CPU generator, so with the same seed the image
+    # would be re-noised with its own generating noise, which gives flat, posterized outputs.
+    edit_seed = args.seed + 1000
+
     for res in args.resolutions:
         img_dir = os.path.join(args.output_dir, str(res))
         os.makedirs(img_dir, exist_ok=True)
@@ -84,7 +89,7 @@ def main():
                     row["speedup"] = prof["dense"]["latency_ms"] / row["latency_ms"]
                 if not args.skip_quality:
                     out = editor.edit(init, edited, args.prompt, config=cfg, strength=args.strength,
-                                      steps=args.steps, guidance=args.guidance, seed=args.seed,
+                                      steps=args.steps, guidance=args.guidance, seed=edit_seed,
                                       preserve_unedited=args.preserve_unedited)
                     out.image.save(os.path.join(img_dir, "%s_%s.png" % (tag, cfg)))
                     if cfg == "dense":
