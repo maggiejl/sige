@@ -1,9 +1,9 @@
 TODOS:
 1. run 5 ablations
- - image resolution (maggie lin)
+ - image resolution (alison)
  - kernel size (block size) (jinhee)
  - percentage of weight sparsity (maggie liu)
- - edit size (alison)
+ - edit size (maggie lin)
  - edit shape (tina)
 
  2. write up results in our proposal / final report
