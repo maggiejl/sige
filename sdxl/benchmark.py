@@ -45,11 +45,20 @@ def main():
     p.add_argument("--text_encoders_on_cpu", action="store_true")
     p.add_argument("--offload_vae", action="store_true",
                    help="keep the VAE off the GPU during denoising (needed on 12 GB cards)")
+    # SIGE block sizes (kernel-size ablation); the defaults match patch_unet.
+    p.add_argument("--main_block_size", type=int, default=6, help="3x3 convs in the resnet blocks")
+    p.add_argument("--shortcut_block_size", type=int, default=4, help="1x1 resnet shortcuts")
+    p.add_argument("--downsample_block_size", type=int, default=5)
+    p.add_argument("--upsample_block_size", type=int, default=6)
+    p.add_argument("--attn_block_size", type=int, default=4, help="transformer token blocks")
     args = p.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
+    block_sizes = {k: getattr(args, k) for k in ("main_block_size", "shortcut_block_size", "downsample_block_size",
+                                                  "upsample_block_size", "attn_block_size")}
+    print("Block sizes:", block_sizes)
     editor = SIGESDXLEditor(args.model_id, args.device, text_encoders_on_cpu=args.text_encoders_on_cpu,
-                            offload_vae=args.offload_vae)
+                            offload_vae=args.offload_vae, patch_kwargs=block_sizes)
     csv_path = os.path.join(args.output_dir, "results.csv")
     fields = ["resolution", "target_ratio", "edit_ratio", "config", "gmacs", "latency_ms", "latency_std_ms",
               "macs_reduction", "speedup", "psnr_vs_dense", "lpips_vs_dense"]

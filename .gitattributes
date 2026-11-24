@@ -1,0 +1,2 @@
+# Shell scripts must keep LF endings so they run under Git Bash and Slurm.
+*.sh text eol=lf
