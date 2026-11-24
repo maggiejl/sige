@@ -5,7 +5,8 @@ import platform
 
 import torch
 from setuptools import find_packages, setup
-from torch.utils.cpp_extension import build_ext, BuildExtension, CppExtension, CUDAExtension, IS_WINDOWS
+from setuptools.command.build_ext import build_ext  # no longer re-exported by recent torch
+from torch.utils.cpp_extension import BuildExtension, CppExtension, CUDAExtension, IS_WINDOWS
 
 
 def get_mps_extension(name, sources, *args, **kwargs):

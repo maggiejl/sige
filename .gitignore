@@ -45,3 +45,5 @@ CMakeLists.txt
 .ipynb_checkpoints/
 viz_html/
 *.metallib
+# SDXL experiment outputs
+sdxl/outputs/
