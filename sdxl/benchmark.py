@@ -37,14 +37,19 @@ def main():
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--repeats", type=int, default=10)
     p.add_argument("--skip_quality", action="store_true")
+    p.add_argument("--preserve_unedited", action="store_true",
+                   help="keep the image outside the edit mask (inpainting-style latent blending)")
     p.add_argument("--output_dir", default="outputs/benchmark")
     p.add_argument("--model_id", default="stabilityai/stable-diffusion-xl-base-1.0")
     p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     p.add_argument("--text_encoders_on_cpu", action="store_true")
+    p.add_argument("--offload_vae", action="store_true",
+                   help="keep the VAE off the GPU during denoising (needed on 12 GB cards)")
     args = p.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
-    editor = SIGESDXLEditor(args.model_id, args.device, text_encoders_on_cpu=args.text_encoders_on_cpu)
+    editor = SIGESDXLEditor(args.model_id, args.device, text_encoders_on_cpu=args.text_encoders_on_cpu,
+                            offload_vae=args.offload_vae)
     csv_path = os.path.join(args.output_dir, "results.csv")
     fields = ["resolution", "target_ratio", "edit_ratio", "config", "gmacs", "latency_ms", "latency_std_ms",
               "macs_reduction", "speedup", "psnr_vs_dense", "lpips_vs_dense"]
@@ -79,7 +84,8 @@ def main():
                     row["speedup"] = prof["dense"]["latency_ms"] / row["latency_ms"]
                 if not args.skip_quality:
                     out = editor.edit(init, edited, args.prompt, config=cfg, strength=args.strength,
-                                      steps=args.steps, guidance=args.guidance, seed=args.seed)
+                                      steps=args.steps, guidance=args.guidance, seed=args.seed,
+                                      preserve_unedited=args.preserve_unedited)
                     out.image.save(os.path.join(img_dir, "%s_%s.png" % (tag, cfg)))
                     if cfg == "dense":
                         dense_img = out.image

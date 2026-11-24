@@ -8,6 +8,7 @@ pass alone: in an interactive editor the original image's activations are comput
 across edits.
 """
 
+import contextlib
 import copy
 import time
 from dataclasses import dataclass, field
@@ -56,6 +57,7 @@ class SIGESDXLEditor:
         model_id: str = "stabilityai/stable-diffusion-xl-base-1.0",
         device: str = "cuda",
         text_encoders_on_cpu: bool = False,
+        offload_vae: bool = False,
         patch_kwargs: Optional[dict] = None,
     ):
         from diffusers import DDIMScheduler, StableDiffusionXLPipeline
@@ -65,7 +67,11 @@ class SIGESDXLEditor:
         pipe = StableDiffusionXLPipeline.from_pretrained(model_id, torch_dtype=torch.float32)
         pipe.scheduler = DDIMScheduler.from_config(pipe.scheduler.config)
         pipe.unet.to(device).eval()
-        pipe.vae.to(device).eval()
+        # offload_vae: keep the VAE on the CPU and move it to the GPU only while encoding / decoding.
+        # On 12 GB cards the fp32 U-Net plus SIGE's caches otherwise exceed dedicated memory and the
+        # cache-filling passes become ~10x slower.
+        self.offload_vae = offload_vae and torch.device(device).type == "cuda"
+        pipe.vae.to("cpu" if self.offload_vae else device).eval()
         te_device = "cpu" if text_encoders_on_cpu else device
         pipe.text_encoder.to(te_device)
         pipe.text_encoder_2.to(te_device)
@@ -93,12 +99,26 @@ class SIGESDXLEditor:
     @torch.no_grad()
     def encode_image(self, img: torch.Tensor) -> torch.Tensor:
         vae = self.pipe.vae
-        return vae.encode(img.to(self.device)).latent_dist.mode() * vae.config.scaling_factor
+        with self._vae_on_device():
+            return vae.encode(img.to(self.device)).latent_dist.mode() * vae.config.scaling_factor
 
     @torch.no_grad()
     def decode_latents(self, z: torch.Tensor) -> Image.Image:
         vae = self.pipe.vae
-        return tensor_to_pil(vae.decode(z / vae.config.scaling_factor).sample)
+        with self._vae_on_device():
+            return tensor_to_pil(vae.decode(z / vae.config.scaling_factor).sample)
+
+    @contextlib.contextmanager
+    def _vae_on_device(self):
+        if not self.offload_vae:
+            yield
+            return
+        self.pipe.vae.to(self.device)
+        try:
+            yield
+        finally:
+            self.pipe.vae.to("cpu")
+            torch.cuda.empty_cache()
 
     def _sync(self):
         if self.device.type == "cuda":
@@ -152,7 +172,18 @@ class SIGESDXLEditor:
         guidance: float = 5.0,
         seed: int = 0,
         decode: bool = True,
+        preserve_unedited: bool = False,
     ) -> EditResult:
+        """SDEdit on ``edited_image``.
+
+        ``preserve_unedited=False`` is plain SDEdit, as in SIGE's ``sdedit_runner.py``: the whole image is
+        re-noised and regenerated, and the cache-filling pass follows the original image's own trajectory.
+
+        ``preserve_unedited=True`` mirrors SIGE's ``inpainting_runner.py`` (``DDIMSampler.sample`` with
+        ``mask``/``x0``): before every step the latent outside the edit mask is reset to the original
+        image noised to the current timestep, so only the edited region is generated and the rest of the
+        image is kept. The cache-filling pass then runs on that noised original latent.
+        """
         assert config in CONFIGS, config
         assert init_image.size == edited_image.size
         W, H = edited_image.size
@@ -173,15 +204,24 @@ class SIGESDXLEditor:
         noise = torch.randn(z_edit0.shape, generator=g).to(self.device)
         z_edit = sched.add_noise(z_edit0, noise, timesteps[:1])
         use_sige = config != "dense"
-        if use_sige:
+        if use_sige or preserve_unedited:
+            z_init0 = self.encode_image(init_px)
+        if use_sige and not preserve_unedited:
             sched_init = copy.deepcopy(sched)
-            z_init = sched.add_noise(self.encode_image(init_px), noise, timesteps[:1])
+            z_init = sched.add_noise(z_init0, noise, timesteps[:1])
+        if preserve_unedited:
+            # 1 inside the (dilated) edit region at latent resolution, 0 where the original is kept
+            edit_region = masks[tuple(z_edit0.shape[2:])][None, None].to(z_edit0.dtype)
 
         self.sige.set_config(config)
         eps = self._cfg_eps(sched, ctx, added, guidance)
 
         res = EditResult(image=None, config=config, edit_ratio=ratio)
         for i, t in enumerate(timesteps):
+            if preserve_unedited:
+                # same noise at every step keeps the run deterministic and identical across configs
+                z_init = sched.add_noise(z_init0, noise, t.reshape(1))
+                z_edit = edit_region * z_edit + (1.0 - edit_region) * z_init
             if use_sige:
                 self.sige.set_mode("full")
                 self._sync()
@@ -189,7 +229,8 @@ class SIGESDXLEditor:
                 e_init = eps(z_init, t)
                 self._sync()
                 res.full_ms.append((time.perf_counter() - t0) * 1e3)
-                z_init = sched_init.step(e_init, t, z_init).prev_sample
+                if not preserve_unedited:
+                    z_init = sched_init.step(e_init, t, z_init).prev_sample
                 if i == 0:
                     self.sige.set_masks(masks)
                 self.sige.set_mode("sparse")
@@ -202,12 +243,14 @@ class SIGESDXLEditor:
             res.unet_ms.append((time.perf_counter() - t0) * 1e3)
             z_edit = sched.step(e_edit, t, z_edit).prev_sample
 
+        if preserve_unedited:
+            z_edit = edit_region * z_edit + (1.0 - edit_region) * z_init0
         self.sige.set_mode("dense")
         self.sige.clear_cache()
         res.latents = z_edit
         if decode:
             res.image = self.decode_latents(z_edit)
-            if use_sige:
+            if use_sige and not preserve_unedited:
                 res.original_image = self.decode_latents(z_init)
         return res
 
