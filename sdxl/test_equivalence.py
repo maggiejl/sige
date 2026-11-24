@@ -10,7 +10,7 @@ Checks:
  2. Unedited input + partial mask: sparse == dense (inactive regions come from the cache).
  3. Edited input + all-active mask: only differs from dense by the GroupNorm statistics, which SIGE
     reuses from the original image.
- 4. Edited input + edit mask: the SIGE approximation. Reported against dense(edited), with the error
+ 4. Edited input + edit mask: the SIGE approximation. Reported  against dense(edited), with the error
     of simply returning dense(original) as a reference point.
 """
 

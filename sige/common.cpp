@@ -1,5 +1,16 @@
 #include <iostream>
+#if defined(__CUDACC__) && defined(_MSC_VER)
+// nvcc + MSVC cannot parse the Python/dynamo headers pulled in by torch/extension.h
+// ('std': ambiguous symbol in compiled_autograd.h); the kernels only need the tensor API.
+#include <torch/types.h>
+#include <torch/csrc/autograd/generated/variable_factories.h>
+#else
 #include <torch/extension.h>
+#endif
+
+#ifdef _MSC_VER  // MSVC (also nvcc's host compiler on Windows) has no __builtin_unreachable
+#define __builtin_unreachable() __assume(0)
+#endif
 
 const std::string identityName("identity"), swishName("swish");
 

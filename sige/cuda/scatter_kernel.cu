@@ -3,7 +3,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <iostream>
-#include <torch/extension.h>
+// torch headers come from common_cuda.cu -> ../common.cpp
 
 __global__ void scatter_cuda_kernel(
         int total, int numActive,

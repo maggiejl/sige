@@ -9,3 +9,23 @@ TODOS:
  2. write up results in our proposal / final report
  3. write conclusions, limiations, ai disclosure
  4. fill in poster with report details
+
+
+Base point (everything else held here)
+
+Resolution 512, the only size that fits this 12 GB card without heavy spill (the preliminary run peaked at 10.9 GB).
+Configs dense, sige_conv, sige_conv_attn, with 10% edit size as the default.
+50 DDIM steps, strength 0.8, guidance 5.0, --repeats 10, --text_encoders_on_cpu.
+Two or three prompts with one seed each, so quality numbers are averages rather than a single image.
+Split efficiency from quality
+
+MACs and latency come from a single U-Net call and don't depend on step count, so sweep them broadly with --skip_quality (seconds per cell).
+PSNR/LPIPS need the full SDEdit loop, about 2 minutes per edit ratio for all three configs at 50 steps by my estimate from the measured latencies. Run those only at the base point and on the edit-size sweep.
+The five ablations
+
+Ablation	Values	Mode	Status
+Edit size	1, 5, 10, 20, 40, 60%	efficiency + quality	works now
+Resolution	512, 768, 1024 at 5% and 20%	efficiency only	works now; see caveat below
+Block size	conv 4 / 6 / 8, attention 2 / 4 / 8	efficiency, quality at 10%	block sizes are constructor arguments in modules.py, but benchmark.py has no flag for them
+Edit shape	compact blob, thin stripe, scattered dots, ring, all at 10% area	efficiency, quality optional	edits.py only makes blobs; needs new shape generators
+Weight sparsity	–	–	nothing in the repo implements this
