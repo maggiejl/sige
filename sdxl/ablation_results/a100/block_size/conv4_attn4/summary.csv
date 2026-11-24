@@ -1,0 +1,4 @@
+resolution,target_ratio,config,n,edit_ratio,edit_ratio_std,gmacs,gmacs_std,latency_ms,latency_ms_std,macs_reduction,macs_reduction_std,speedup,speedup_std,psnr_vs_dense,psnr_vs_dense_std,lpips_vs_dense,lpips_vs_dense_std
+512,0.1,dense,3,0.1141,0.000265,1589,0,179.5,0.364,1,0,1,0,,,,
+512,0.1,sige_conv,3,0.1141,0.000265,1312,0.0626,176.3,0.118,1.211,5.77e-05,1.018,0.00138,27.87,2.88,0.05528,0.0205
+512,0.1,sige_conv_attn,3,0.1141,0.000265,708.5,0.0626,106.4,0.0472,2.243,0.000198,1.688,0.00314,27.09,2.8,0.06335,0.0255

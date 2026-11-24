@@ -1,0 +1,73 @@
+% Requires \usepackage{booktabs}
+\begin{table}[t]
+\centering
+\small
+\caption{SIGE vs. dense SDXL at the base point (a100): 512 px, 10\% edit, 50 DDIM steps, strength 0.8, guidance 5.0, mean $\pm$ std over 3 prompts. PSNR / LPIPS compare the full SDEdit output with dense SDXL given the same input, prompt, noise and seed.}
+\label{tab:baseline_a100}
+\begin{tabular}{lrrrrrr}
+\toprule
+Method & GMACs & MACs red. & Latency (ms) & Speedup & PSNR (dB) $\uparrow$ & LPIPS $\downarrow$ \\
+\midrule
+Dense SDXL & 1589 & 1.00$\times$ & 179.2 $\pm$ 0.3 & 1.00$\times$ & -- & -- \\
+SIGE (conv) & 1352 & 1.18$\times$ & 175.5 $\pm$ 0.0 & 1.02$\times$ $\pm$ 0.00 & 27.98 $\pm$ 2.57 & 0.055 $\pm$ 0.020 \\
+SIGE (conv+attn) & 748 & 2.12$\times$ & 106.0 $\pm$ 0.0 & 1.69$\times$ $\pm$ 0.00 & 28.34 $\pm$ 2.81 & 0.049 $\pm$ 0.030 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\small
+\caption{Effect of edit size (a100, 512 px). Edit = measured fraction of changed pixels; MACs reduction and speedup are relative to dense SDXL; quality is vs. dense SDXL, mean $\pm$ std over 3 prompts.}
+\label{tab:edit_size_a100}
+\begin{tabular}{rlrrrrr}
+\toprule
+Edit & Method & GMACs & MACs red. & Speedup & PSNR (dB) $\uparrow$ & LPIPS $\downarrow$ \\
+\midrule
+1.3\% & SIGE (conv) & 1255 & 1.27$\times$ & 1.03$\times$ $\pm$ 0.00 & 47.54 $\pm$ 4.43 & 0.002 $\pm$ 0.001 \\
+ & SIGE (conv+attn) & 378 & 4.20$\times$ & 2.26$\times$ $\pm$ 0.00 & 46.48 $\pm$ 4.47 & 0.002 $\pm$ 0.001 \\
+\midrule
+5.9\% & SIGE (conv) & 1303 & 1.22$\times$ & 1.03$\times$ $\pm$ 0.00 & 33.92 $\pm$ 1.72 & 0.013 $\pm$ 0.005 \\
+ & SIGE (conv+attn) & 502 & 3.16$\times$ & 2.07$\times$ $\pm$ 0.00 & 29.99 $\pm$ 2.67 & 0.024 $\pm$ 0.007 \\
+\midrule
+11.4\% & SIGE (conv) & 1352 & 1.18$\times$ & 1.02$\times$ $\pm$ 0.00 & 27.98 $\pm$ 2.57 & 0.055 $\pm$ 0.020 \\
+ & SIGE (conv+attn) & 748 & 2.12$\times$ & 1.70$\times$ $\pm$ 0.00 & 28.34 $\pm$ 2.81 & 0.049 $\pm$ 0.030 \\
+\midrule
+22.3\% & SIGE (conv) & 1422 & 1.12$\times$ & 1.01$\times$ $\pm$ 0.00 & 27.27 $\pm$ 5.24 & 0.075 $\pm$ 0.049 \\
+ & SIGE (conv+attn) & 1021 & 1.55$\times$ & 1.28$\times$ $\pm$ 0.00 & 27.17 $\pm$ 4.61 & 0.080 $\pm$ 0.053 \\
+\midrule
+43.7\% & SIGE (conv) & 1566 & 1.01$\times$ & 0.98$\times$ $\pm$ 0.00 & 25.28 $\pm$ 2.52 & 0.097 $\pm$ 0.007 \\
+ & SIGE (conv+attn) & 1386 & 1.15$\times$ & 1.02$\times$ $\pm$ 0.00 & 24.15 $\pm$ 2.36 & 0.122 $\pm$ 0.006 \\
+\midrule
+60.1\% & SIGE (conv) & 1610 & 0.99$\times$ & 0.98$\times$ $\pm$ 0.00 & 22.35 $\pm$ 1.18 & 0.169 $\pm$ 0.010 \\
+ & SIGE (conv+attn) & 1579 & 1.01$\times$ & 0.98$\times$ $\pm$ 0.00 & 19.62 $\pm$ 3.54 & 0.280 $\pm$ 0.126 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\small
+\caption{Effect of the SIGE block size (a100, 512 px, 10\% edit). Conv = block size of the 3$\times$3 convolutions (resnet and upsample), Attn = token block size of the transformers; 1$\times$1 shortcuts (4) and stride-2 downsamplers (5) are fixed. The attention block size does not affect SIGE (conv), whose transformers are dense. Defaults are 6 / 4.}
+\label{tab:block_size_a100}
+\begin{tabular}{rrlrrrrr}
+\toprule
+Conv & Attn & Method & GMACs & MACs red. & Speedup & PSNR (dB) $\uparrow$ & LPIPS $\downarrow$ \\
+\midrule
+4 & 4 & SIGE (conv) & 1312 & 1.21$\times$ & 1.02$\times$ $\pm$ 0.00 & 27.87 $\pm$ 2.88 & 0.055 $\pm$ 0.021 \\
+ &  & SIGE (conv+attn) & 708 & 2.24$\times$ & 1.69$\times$ $\pm$ 0.00 & 27.09 $\pm$ 2.80 & 0.063 $\pm$ 0.025 \\
+\midrule
+6 & 2 & SIGE (conv) & 1352 & 1.18$\times$ & 1.02$\times$ $\pm$ 0.00 & 27.98 $\pm$ 2.57 & 0.055 $\pm$ 0.020 \\
+ &  & SIGE (conv+attn) & 556 & 2.86$\times$ & 2.03$\times$ $\pm$ 0.00 & 24.98 $\pm$ 1.61 & 0.073 $\pm$ 0.028 \\
+\midrule
+6 & 4 & SIGE (conv) & 1352 & 1.18$\times$ & 1.02$\times$ $\pm$ 0.00 & 27.98 $\pm$ 2.57 & 0.055 $\pm$ 0.020 \\
+ &  & SIGE (conv+attn) & 748 & 2.12$\times$ & 1.69$\times$ $\pm$ 0.00 & 28.34 $\pm$ 2.81 & 0.049 $\pm$ 0.030 \\
+\midrule
+6 & 8 & SIGE (conv) & 1352 & 1.18$\times$ & 1.02$\times$ $\pm$ 0.00 & 27.98 $\pm$ 2.57 & 0.055 $\pm$ 0.020 \\
+ &  & SIGE (conv+attn) & 1258 & 1.26$\times$ & 1.07$\times$ $\pm$ 0.00 & 27.90 $\pm$ 2.09 & 0.054 $\pm$ 0.019 \\
+\midrule
+8 & 4 & SIGE (conv) & 1387 & 1.15$\times$ & 1.02$\times$ $\pm$ 0.00 & 28.23 $\pm$ 3.14 & 0.054 $\pm$ 0.022 \\
+ &  & SIGE (conv+attn) & 783 & 2.03$\times$ & 1.69$\times$ $\pm$ 0.00 & 27.69 $\pm$ 2.75 & 0.057 $\pm$ 0.027 \\
+\bottomrule
+\end{tabular}
+\end{table}
