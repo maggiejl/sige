@@ -1,8 +1,8 @@
 TODOS:
 1. run 5 ablations
+ - baseline (maggie liu)
  - image resolution (alison)
  - kernel size (block size) (jinhee)
- - percentage of weight sparsity (maggie liu)
  - edit size (maggie lin)
  - edit shape (tina)
 
