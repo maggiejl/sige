@@ -1,0 +1,11 @@
+TODOS:
+1. run 5 ablations
+ - image resolution
+ - kernel size (block size)
+ - percentage of weight sparsity
+ - edit size
+ - edit shape
+
+ 2. write up results in our proposal / final report
+ 3. write conclusions, limiations, ai disclosure
+ 4. fill in poster with report details
